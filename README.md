@@ -91,6 +91,7 @@ Drop an existing Obsidian vault into `clin` and it works out of the box. Native 
 - **Templates** — TOML-based note templates with variable substitution (`{date}`, `{time}`, `{weekday}`, etc.). See [TEMPLATES.md](docs/TEMPLATES.md).
 - **Goals system** — daily word-count and note-count goals with in-app progress bars. Configurable via `[goals]` config section and command palette.
 - **Import & conversion** — import File/CSV/JSON/URL/Clipboard content as a new note or append to the current note. PDF, DOCX, HTML converted via external tools.
+- **Obsidian plugin-compatible CLI tools** — `clin jot` (Daily Notes plugin quick-capture), `clin contacts birthdays` (obsidian-contacts Frontmatter Format), and `clin tasks list` (Obsidian Tasks plugin-compatible checklist filtering/sorting: due/done dates, status, tags, priority). See [TASKS.md](docs/TASKS.md).
 - **Obsidian callouts** — `> [!note]`/`> [!warning]`/etc. blockquote callouts render as a bold uppercase label instead of literal brackets in the markdown preview.
 
 ---
@@ -450,6 +451,14 @@ clin keybinds reset               Reset keybinds to defaults
 clin templates list               List templates
 clin templates init               Create example templates
 
+clin jot <TEXT>                   Append a timestamped entry to today's daily note
+clin jot --append <TEXT>          Append a raw block to today's daily note (Obsidian Daily Notes plugin compatible)
+
+clin contacts birthdays [WINDOW]  List contacts (obsidian-contacts Frontmatter Format) with birthdays today/this week/this month
+
+clin tasks list [OPTIONS]         Query checklist items vault-wide: due/done dates, status, tags, priority, filtering, sorting
+                                   (Obsidian Tasks plugin compatible subset — see docs/TASKS.md)
+
 clin config show                  Print the config file path
 clin config edit                  Open config in $VISUAL or $EDITOR
 clin config reset                 Reset config to default values
@@ -486,6 +495,7 @@ Full technical documentation lives in [`docs/`](docs/INDEX.md):
 - [Command Palette](docs/COMMAND_PALETTE.md) — extensible action system
 - [Subnotes](docs/SUBNOTES.md) — encrypted attached notes, grid tab, radial graph, manager popup
 - [Templates](docs/TEMPLATES.md) — TOML-based note templates
+- [Tasks](docs/TASKS.md) — Obsidian Tasks-plugin-compatible checklist CLI: due/done dates, status, tags, priority, filtering, sorting
 
 ## Stats
 

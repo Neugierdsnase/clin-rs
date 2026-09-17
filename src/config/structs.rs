@@ -548,6 +548,64 @@ impl Default for GoalsConfig {
     }
 }
 
+/// A single entry in `[tasks]`'s custom status collection: which checkbox
+/// `symbol` (the character in `[ ]`) maps to which display `name` and
+/// [`crate::tasks::StatusType`] group. Unrecognised symbols fall back to
+/// an "Unknown"/`Todo` status at read time, matching the Obsidian Tasks
+/// plugin's own behaviour for statuses it doesn't know about.
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct TaskStatusConfig {
+    pub symbol: char,
+    pub name: String,
+    #[serde(rename = "type")]
+    pub kind: crate::tasks::StatusType,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[serde(default)]
+pub struct TasksConfig {
+    /// Checkbox symbol -> name/type mapping. Defaults cover the Tasks
+    /// plugin's Core Statuses (` `, `x`, `X`) plus the two most common
+    /// conventional extras (`-` cancelled, `/` in progress); override or
+    /// extend this list to match your own vault's checkbox theme.
+    pub statuses: Vec<TaskStatusConfig>,
+}
+
+impl Default for TasksConfig {
+    fn default() -> Self {
+        use crate::tasks::StatusType;
+        Self {
+            statuses: vec![
+                TaskStatusConfig {
+                    symbol: ' ',
+                    name: "Todo".to_string(),
+                    kind: StatusType::Todo,
+                },
+                TaskStatusConfig {
+                    symbol: 'x',
+                    name: "Done".to_string(),
+                    kind: StatusType::Done,
+                },
+                TaskStatusConfig {
+                    symbol: 'X',
+                    name: "Done".to_string(),
+                    kind: StatusType::Done,
+                },
+                TaskStatusConfig {
+                    symbol: '-',
+                    name: "Cancelled".to_string(),
+                    kind: StatusType::Cancelled,
+                },
+                TaskStatusConfig {
+                    symbol: '/',
+                    name: "In Progress".to_string(),
+                    kind: StatusType::InProgress,
+                },
+            ],
+        }
+    }
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
 #[serde(default)]
 pub struct StatuslineConfig {
@@ -595,6 +653,8 @@ pub struct ClinConfig {
     pub image: ImageConfig,
     #[serde(default)]
     pub statusline: StatuslineConfig,
+    #[serde(default)]
+    pub tasks: TasksConfig,
     #[serde(skip)]
     pub accent_hint_migrated: bool,
 }

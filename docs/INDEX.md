@@ -30,6 +30,7 @@ For installation, quickstart, and general project info, see the [README.md](../R
 - [TEMPLATES.md](TEMPLATES.md) — Note template system: TOML file format, template variables, CLI usage
 - [IMAGE_RENDERING.md](IMAGE_RENDERING.md) — Native image rendering: ratatui-image, sixel/kitty/iTerm protocols, [image] config, cache/worker
 - [SUBNOTES.md](SUBNOTES.md) — Subnotes: encrypted attached notes, grid tab, virtual tree folder, radial graph, manager popup
+- [TASKS.md](TASKS.md) — Obsidian Tasks-plugin-compatible checklist CLI: signifier parsing, query grammar, filtering, sorting, `[tasks]` config
 
 ## Configuration
 
@@ -59,6 +60,7 @@ docs/
 ├── IMAGE_RENDERING.md    Native image rendering, ratatui-image, protocols
 ├── TEMPLATES.md          Note template system
 ├── SUBNOTES.md           Subnotes: encrypted virtual notes, grid tab, radial graph
+├── TASKS.md              Tasks CLI: checklist parsing, query grammar, filtering, sorting
 ├── CONFIG_REFERENCE.md   All config options
 ├── KEYBIND_PRESETS.md     Keybind presets and sequence syntax
 ```

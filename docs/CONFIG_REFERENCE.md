@@ -371,6 +371,30 @@ All optional. Hex color strings like `"#ff6600"`. Override theme defaults.
 | `enabled` | `bool` | `true` | Enable the daily word/note goals system |
 | `word_goal` | `usize` | `500` | Daily target word count (incremental additions). Set to 0 to disable |
 | `note_goal` | `usize` | `3` | Daily target note count (edited or created). Set to 0 to disable |
+
+### `[tasks]`
+
+Custom checkbox statuses for `clin tasks list` (see [TASKS.md](TASKS.md)). Which
+symbol (the character in `[ ]`) maps to which display name and status
+group — a symbol not listed falls back to an `"Unknown"`/`Todo` status,
+matching the Obsidian Tasks plugin's own behaviour.
+
+| Option | Type | Default | Description |
+|---|---|---|---|
+| `statuses` | `array` | see below | List of `{symbol, name, type}` entries. `type` is one of `TODO`, `IN_PROGRESS`, `ON_HOLD`, `DONE`, `CANCELLED`, `NON_TASK` |
+
+Default `statuses` (override the whole list to change or extend it):
+
+```toml
+[tasks]
+statuses = [
+    { symbol = " ", name = "Todo", type = "TODO" },
+    { symbol = "x", name = "Done", type = "DONE" },
+    { symbol = "X", name = "Done", type = "DONE" },
+    { symbol = "-", name = "Cancelled", type = "CANCELLED" },
+    { symbol = "/", name = "In Progress", type = "IN_PROGRESS" },
+]
+```
 ---
 
 ## Example config.toml
@@ -723,3 +747,4 @@ The old `graf.toml` file is **no longer used**. All graf options (`[graf.visual]
 - [README.md](../README.md) — Quickstart, installation, CLI commands
 - [THEME_SYSTEM.md](THEME_SYSTEM.md) — Theme system details and color reference
 - [GRAPH_VIEW.md](GRAPH_VIEW.md) — Graph view configuration context
+- [TASKS.md](TASKS.md) — Obsidian Tasks-plugin-compatible checklist CLI

@@ -72,12 +72,15 @@ pub mod session;
 pub mod setup;
 pub mod snapshot;
 pub mod statusline;
+pub mod tasks;
+pub mod tasks_query;
 pub mod templates;
 pub mod text_edit;
 pub mod todo;
 
 use crate::cli::{
-    CacheCmd, Cli, Command, ConfigCmd, ContactsCmd, KeybindsCmd, NotesCmd, StorageCmd, TemplatesCmd,
+    CacheCmd, Cli, Command, ConfigCmd, ContactsCmd, KeybindsCmd, NotesCmd, StorageCmd,
+    TasksCmd, TemplatesCmd,
 };
 use crate::config::ClinConfig;
 use std::collections::HashMap;
@@ -162,6 +165,7 @@ pub fn run() -> Result<()> {
         Some(Command::Cache { action }) => run_cache(action),
         Some(Command::Jot { text, append }) => run_jot(text, append),
         Some(Command::Contacts { action }) => run_contacts(action),
+        Some(Command::Tasks { action }) => run_tasks(action),
     }
 }
 fn launch_tui(open_title: Option<String>, force_setup: bool) -> Result<()> {
@@ -280,6 +284,132 @@ fn run_contacts_birthdays(window: &str, verbose: bool, date_format: Option<Strin
 
     if !found {
         println!("{}", console::info(window.none_message()));
+    }
+    Ok(())
+}
+
+fn run_tasks(action: TasksCmd) -> Result<()> {
+    match action {
+        TasksCmd::List {
+            status,
+            due,
+            done,
+            priority,
+            tags,
+            path,
+            sort,
+            query,
+            verbose,
+        } => run_tasks_list(status, due, done, priority, tags, path, sort, query, verbose),
+    }
+}
+
+#[allow(clippy::too_many_arguments)]
+fn run_tasks_list(
+    status: Option<String>,
+    due: Option<String>,
+    done: Option<String>,
+    priority: Option<String>,
+    tags: Vec<String>,
+    path: Option<String>,
+    sort: Vec<String>,
+    query: Option<String>,
+    verbose: bool,
+) -> Result<()> {
+    let today = chrono::Local::now().date_naive();
+
+    // `--query` is a raw Tasks-syntax escape hatch: when given, the other
+    // flags are sugar for the exact same grammar and are ignored, so there
+    // is one unambiguous source of truth for a given invocation.
+    let query_text = if let Some(query) = query {
+        query
+    } else {
+        let mut lines = Vec::new();
+        if let Some(status) = &status {
+            match status.as_str() {
+                "open" => lines.push("not done".to_string()),
+                "done" => lines.push("done".to_string()),
+                "all" => {}
+                other => {
+                    eprintln!(
+                        "{}",
+                        console::error(&format!(
+                            "Invalid --status '{other}': expected 'open', 'done', or 'all'"
+                        ))
+                    );
+                    process::exit(1);
+                }
+            }
+        }
+        if let Some(due) = &due {
+            lines.push(format!("due {due}"));
+        }
+        if let Some(done) = &done {
+            lines.push(format!("done {done}"));
+        }
+        if let Some(priority) = &priority {
+            lines.push(format!("priority is {priority}"));
+        }
+        for tag in &tags {
+            lines.push(format!("tags include {tag}"));
+        }
+        if let Some(path) = &path {
+            lines.push(format!("path includes {path}"));
+        }
+        for key in &sort {
+            lines.push(format!("sort by {key}"));
+        }
+        lines.join("\n")
+    };
+
+    let parsed = match crate::tasks_query::parse_query(&query_text, today) {
+        Ok(parsed) => parsed,
+        Err(e) => {
+            eprintln!("{}", console::error(&format!("Invalid query: {e}")));
+            process::exit(1);
+        }
+    };
+
+    let (storage, _) = Storage::init();
+    let storage = storage?;
+    let config = ClinConfig::load().0?;
+    let registry = crate::tasks::StatusRegistry::from_config(&config.tasks);
+
+    let mut all_tasks = crate::tasks::scan_vault(&storage, &registry)?;
+    all_tasks.retain(|t| parsed.filters.iter().all(|f| f.matches(t)));
+
+    let sort_specs = if parsed.sort.is_empty() {
+        crate::tasks::default_sort()
+    } else {
+        parsed.sort
+    };
+    crate::tasks::sort_tasks(&mut all_tasks, &sort_specs);
+
+    if all_tasks.is_empty() {
+        println!("{}", console::info("No matching tasks."));
+        return Ok(());
+    }
+
+    for task in &all_tasks {
+        let marker = format!("[{}]", task.status.symbol);
+        let mut line = format!("{marker} {}", task.description);
+        if let Some(d) = task.due {
+            line.push_str(&format!(" (due {d})"));
+        }
+        if let Some(d) = task.done {
+            line.push_str(&format!(" (done {d})"));
+        }
+        if task.priority != crate::tasks::Priority::None {
+            line.push_str(&format!(" [{}]", task.priority.name()));
+        }
+        if verbose {
+            println!(
+                "{} {line}",
+                console::dim(&format!("{}:{}:", task.note_id, task.line))
+            );
+        } else {
+            println!("{line}");
+        }
     }
     Ok(())
 }

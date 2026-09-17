@@ -77,6 +77,7 @@
 - [x] **todo.txt** — todo.txt standardization support
 - [X] **Daily Notes CLI (`jot`)** — Obsidian Daily Notes plugin compatible quick-capture: `clin jot`/`clin jot --append`, reads the vault's own `.obsidian/daily-notes.json`
 - [X] **Contacts & birthdays CLI** — `clin contacts birthdays` reads obsidian-contacts Frontmatter Format notes, `today`/`week`/`month` windows
+- [X] **Tasks CLI** — `clin tasks list`, Obsidian Tasks plugin-compatible subset: due/done dates, status (configurable via `[tasks]`), tags, priority, filtering, sorting, scoped text query grammar
 - [X] **Obsidian callout rendering** — `> [!type] title` blockquote callouts render as a bold label in the markdown preview instead of literal brackets
 
 ## Planned

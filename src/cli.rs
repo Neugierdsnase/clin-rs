@@ -73,6 +73,49 @@ pub enum Command {
         #[command(subcommand)]
         action: ContactsCmd,
     },
+    /// Checklist items across the vault (Obsidian Tasks plugin compatible
+    /// subset: due/done dates, status, tags, priority, filtering, sorting).
+    Tasks {
+        #[command(subcommand)]
+        action: TasksCmd,
+    },
+}
+
+#[derive(Subcommand, Debug)]
+pub enum TasksCmd {
+    /// List checklist items across the vault.
+    List {
+        /// `open` (not done), `done`, or `all` (default: no status filter).
+        #[arg(long)]
+        status: Option<String>,
+        /// Due-date filter, e.g. `before 2025-01-01`, `today`, `2025-01-01`.
+        #[arg(long)]
+        due: Option<String>,
+        /// Done-date filter, same syntax as `--due`.
+        #[arg(long)]
+        done: Option<String>,
+        /// Priority filter, e.g. `high`, `above none`, `not none`.
+        #[arg(long)]
+        priority: Option<String>,
+        /// Require a tag (repeatable; combined with AND). `#` is optional.
+        #[arg(long = "tag")]
+        tags: Vec<String>,
+        /// Only tasks whose note path contains this text.
+        #[arg(long)]
+        path: Option<String>,
+        /// Sort key (repeatable, in priority order), e.g. `due`,
+        /// `priority reverse`. Defaults to status/due/priority/path.
+        #[arg(long = "sort")]
+        sort: Vec<String>,
+        /// Raw multi-line query in Tasks-plugin syntax (see
+        /// <https://publish.obsidian.md/tasks/Queries/Filters>); when set,
+        /// the flags above are ignored.
+        #[arg(long)]
+        query: Option<String>,
+        /// Also print each task's note path and line number.
+        #[arg(short, long)]
+        verbose: bool,
+    },
 }
 
 #[derive(Subcommand, Debug)]
