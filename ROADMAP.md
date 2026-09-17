@@ -76,6 +76,7 @@
 - [X] **CLI mode** — list, quick-note, find, config, storage, and keybind tools via `clin` subcommands
 - [x] **todo.txt** — todo.txt standardization support
 - [X] **Daily Notes CLI (`jot`)** — Obsidian Daily Notes plugin compatible quick-capture: `clin jot`/`clin jot --append`, reads the vault's own `.obsidian/daily-notes.json`
+- [X] **Contacts & birthdays CLI** — `clin contacts birthdays` reads obsidian-contacts Frontmatter Format notes, `today`/`week`/`month` windows
 - [X] **Obsidian callout rendering** — `> [!type] title` blockquote callouts render as a bold label in the markdown preview instead of literal brackets
 
 ## Planned

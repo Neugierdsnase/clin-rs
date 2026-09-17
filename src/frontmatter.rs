@@ -16,32 +16,38 @@ pub struct Frontmatter {
     pub original_ext: Option<String>,
 }
 
-pub fn parse(content: &str) -> (Frontmatter, &str) {
+/// Extract the raw YAML text between a note's `---` frontmatter
+/// delimiters, along with the remaining body. Returns `None` when
+/// `content` doesn't open with a `---` delimiter, or has no closing one.
+pub fn extract_raw(content: &str) -> Option<(&str, &str)> {
     if !content.starts_with("---\n") && !content.starts_with("---\r\n") {
-        return (Frontmatter::default(), content);
+        return None;
     }
 
     let end_marker = "\n---";
-    if let Some(end_idx) = content[3..].find(end_marker) {
-        let frontmatter_str = &content[3..3 + end_idx];
+    let end_idx = content[3..].find(end_marker)?;
+    let frontmatter_str = &content[3..3 + end_idx];
 
-        let remaining_start = 3 + end_idx + end_marker.len();
-
-        let mut content_start = remaining_start;
-        if content[remaining_start..].starts_with("\r\n") {
-            content_start += 2;
-        } else if content[remaining_start..].starts_with('\n') {
-            content_start += 1;
-        }
-
-        let remaining_content = &content[content_start..];
-
-        if let Ok(frontmatter) = serde_yaml_ng::from_str::<Frontmatter>(frontmatter_str) {
-            return (frontmatter, remaining_content);
-        }
+    let remaining_start = 3 + end_idx + end_marker.len();
+    let mut content_start = remaining_start;
+    if content[remaining_start..].starts_with("\r\n") {
+        content_start += 2;
+    } else if content[remaining_start..].starts_with('\n') {
+        content_start += 1;
     }
 
-    (Frontmatter::default(), content)
+    Some((frontmatter_str, &content[content_start..]))
+}
+
+pub fn parse(content: &str) -> (Frontmatter, &str) {
+    let Some((frontmatter_str, remaining_content)) = extract_raw(content) else {
+        return (Frontmatter::default(), content);
+    };
+
+    match serde_yaml_ng::from_str::<Frontmatter>(frontmatter_str) {
+        Ok(frontmatter) => (frontmatter, remaining_content),
+        Err(_) => (Frontmatter::default(), content),
+    }
 }
 
 pub fn serialize(frontmatter: &Frontmatter, content: &str) -> String {

@@ -12,6 +12,7 @@ pub mod backup {
 pub mod calendar;
 pub mod cli;
 pub mod config;
+pub mod contacts;
 pub mod console;
 pub mod daily_notes;
 pub mod draw {
@@ -76,7 +77,7 @@ pub mod text_edit;
 pub mod todo;
 
 use crate::cli::{
-    CacheCmd, Cli, Command, ConfigCmd, KeybindsCmd, NotesCmd, StorageCmd, TemplatesCmd,
+    CacheCmd, Cli, Command, ConfigCmd, ContactsCmd, KeybindsCmd, NotesCmd, StorageCmd, TemplatesCmd,
 };
 use crate::config::ClinConfig;
 use std::collections::HashMap;
@@ -160,6 +161,7 @@ pub fn run() -> Result<()> {
         Some(Command::Config { action }) => run_config(action),
         Some(Command::Cache { action }) => run_cache(action),
         Some(Command::Jot { text, append }) => run_jot(text, append),
+        Some(Command::Contacts { action }) => run_contacts(action),
     }
 }
 fn launch_tui(open_title: Option<String>, force_setup: bool) -> Result<()> {
@@ -195,6 +197,91 @@ fn run_jot(text: String, append: bool) -> Result<()> {
             process::exit(1);
         }
     }
+}
+
+fn run_contacts(action: ContactsCmd) -> Result<()> {
+    match action {
+        ContactsCmd::Birthdays {
+            window,
+            verbose,
+            date_format,
+        } => run_contacts_birthdays(&window, verbose, date_format),
+    }
+}
+
+/// List the Frontmatter-format contacts (see `contacts.rs`) whose
+/// birthday falls within `window` of today. For `week`/`month`, each name
+/// is suffixed with its next birthday's date, rendered with `date_format`
+/// (Moment.js tokens, see [`daily_notes::format_date`]); a contact with a
+/// known birth year is further suffixed with the age their next birthday
+/// turns them. Both the date and the age are omitted piece by piece when
+/// unavailable: no date outside `week`/`month`, no age without a known
+/// birth year.
+fn run_contacts_birthdays(window: &str, verbose: bool, date_format: Option<String>) -> Result<()> {
+    let Some(window) = crate::contacts::BirthdayWindow::parse(window) else {
+        eprintln!(
+            "{}",
+            console::error(&format!(
+                "Invalid window '{window}': expected 'today', 'week', or 'month'"
+            ))
+        );
+        process::exit(1);
+    };
+    let date_format = date_format.unwrap_or_else(|| "YYYY-MM-DD".to_string());
+
+    let (storage, _) = Storage::init();
+    let storage = storage?;
+    let today = chrono::Local::now().date_naive();
+
+    let mut found = false;
+    for id in storage.list_note_ids(false, false)? {
+        if !id.ends_with(".md") {
+            continue;
+        }
+        let Ok(source) = fs::read_to_string(storage.note_path(&id)) else {
+            continue;
+        };
+        let Some(contact) = crate::contacts::contact_in_note(&source) else {
+            continue;
+        };
+        if !crate::contacts::is_birthday_within(&contact, today, window.days()) {
+            continue;
+        }
+
+        found = true;
+        let name = contact.display_name();
+        let mut parts = Vec::new();
+        if window.shows_date()
+            && let Some(date) = crate::contacts::next_occurrence(&contact, today)
+        {
+            parts.push(if contact.birth_year_known {
+                crate::daily_notes::format_date(&date_format, date)
+            } else {
+                crate::daily_notes::format_date_with_masked_year(&date_format, date)
+            });
+        }
+        if let Some(age) = crate::contacts::age_at_next_occurrence(&contact, today) {
+            parts.push(format!("turns {age} years old"));
+        }
+        let label = if parts.is_empty() {
+            name
+        } else {
+            format!("{name} ({})", parts.join(", "))
+        };
+
+        if verbose {
+            // A matched contact's frontmatter is always on line 1, per
+            // obsidian-contacts' own "must be at the very top" rule.
+            println!("{}:{}: {label}", console::path(&id), console::dim("1"));
+        } else {
+            println!("{label}");
+        }
+    }
+
+    if !found {
+        println!("{}", console::info(window.none_message()));
+    }
+    Ok(())
 }
 
 fn run_notes(action: NotesCmd) -> Result<()> {

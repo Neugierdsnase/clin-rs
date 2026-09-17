@@ -68,6 +68,28 @@ pub enum Command {
         #[arg(long)]
         append: bool,
     },
+    /// Contact notes (obsidian-contacts plugin Frontmatter Format).
+    Contacts {
+        #[command(subcommand)]
+        action: ContactsCmd,
+    },
+}
+
+#[derive(Subcommand, Debug)]
+pub enum ContactsCmd {
+    /// List contacts whose birthday falls within a window of today.
+    Birthdays {
+        /// How far ahead to look: `today`, `week`, or `month`.
+        #[arg(default_value = "today")]
+        window: String,
+        /// Also print each match's note path and frontmatter line.
+        #[arg(short, long)]
+        verbose: bool,
+        /// Moment.js-style format for the birthday date shown by the
+        /// `week`/`month` windows (default: YYYY-MM-DD).
+        #[arg(long)]
+        date_format: Option<String>,
+    },
 }
 
 #[derive(Subcommand, Debug)]
