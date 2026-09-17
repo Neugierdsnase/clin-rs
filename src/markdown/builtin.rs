@@ -1231,15 +1231,63 @@ fn render_blockquote<'a>(ctx: &mut Ctx<'_, '_>, node: &'a AstNode<'a>, depth: us
         ctx.quote_margin = Some(block_margin(depth));
     }
 
+    let mut first = true;
     for child in node.children() {
         if ctx.cancel_token.load(Ordering::Relaxed) {
             break;
+        }
+        if std::mem::take(&mut first) && render_callout_marker(ctx, child, depth) {
+            continue;
         }
         render_block(ctx, child, depth);
     }
 
     ctx.quote_depth = saved_depth;
     ctx.quote_margin = saved_margin;
+}
+
+/// A blockquote's first paragraph is treated as an Obsidian callout marker
+/// (`> [!type] title`) when it starts with `[!...]`; the marker is rendered
+/// as a bold uppercase label instead of literal brackets, with any trailing
+/// title text on the same line, or on later lines, rendered as normal body
+/// text. Mirrors `daily`'s `render_callout_marker` (tasks/src/render.rs).
+fn render_callout_marker<'a>(ctx: &mut Ctx<'_, '_>, node: &'a AstNode<'a>, depth: usize) -> bool {
+    if !matches!(node.data.borrow().value, NodeValue::Paragraph) {
+        return false;
+    }
+    let Some(first_child) = node.children().next() else {
+        return false;
+    };
+    let text = {
+        let data = first_child.data.borrow();
+        match &data.value {
+            NodeValue::Text(t) => t.to_string(),
+            _ => return false,
+        }
+    };
+    let Some(rest) = text.strip_prefix("[!") else {
+        return false;
+    };
+    let Some((kind, same_line)) = rest.split_once(']') else {
+        return false;
+    };
+
+    let margin = block_margin(depth);
+    let src_line = node.data.borrow().sourcepos.start.line;
+    ctx.ensure_source_line(src_line, margin);
+
+    let label_style = ctx.theme.paragraph.add_modifier(Modifier::BOLD);
+    ctx.push_str(&kind.to_uppercase(), label_style, margin);
+    let same_line = same_line.trim_start();
+    if !same_line.is_empty() {
+        ctx.push(' ', ctx.theme.paragraph, margin);
+        ctx.push_str(same_line, ctx.theme.paragraph, margin);
+    }
+
+    for child in node.children().skip(1) {
+        render_inline(ctx, child, ctx.theme.paragraph, margin);
+    }
+    true
 }
 
 // ---------------------------------------------------------------------------
@@ -1954,6 +2002,64 @@ mod tests {
         assert!(
             line_text(bq.expect("lines is not empty")).contains('│'),
             "blockquote rail"
+        );
+    }
+
+    #[test]
+    fn renders_callout_marker_as_bold_uppercase_label() {
+        let lines = render_test("> [!note]\n> A callout body\n", 80, true, false);
+        let label_line = lines
+            .iter()
+            .find(|l| line_text(l).contains("NOTE"))
+            .expect("callout label line should appear");
+        assert!(
+            !line_text(label_line).contains("[!note]"),
+            "literal brackets should not appear: {:?}",
+            line_text(label_line)
+        );
+        let label_cells = line_cells(label_line);
+        let label_style = label_cells
+            .iter()
+            .find(|(c, _)| *c == 'N')
+            .map(|(_, s)| *s)
+            .expect("label has content");
+        assert!(has_mod(label_style, Modifier::BOLD), "callout label bold");
+
+        let body_line = lines
+            .iter()
+            .find(|l| line_text(l).contains("A callout body"))
+            .expect("callout body line should appear");
+        assert!(
+            line_text(body_line).contains('│'),
+            "callout body still inside blockquote rail"
+        );
+    }
+
+    #[test]
+    fn renders_callout_marker_with_inline_title_on_same_line() {
+        let lines = render_test("> [!warning] Watch out\n> Body text\n", 80, true, false);
+        let label_line = lines
+            .iter()
+            .find(|l| line_text(l).contains("WARNING"))
+            .expect("callout label line should appear");
+        assert!(
+            line_text(label_line).contains("WARNING Watch out"),
+            "title stays on the label line: {:?}",
+            line_text(label_line)
+        );
+        assert!(
+            lines.iter().any(|l| line_text(l).contains("Body text")),
+            "body renders as normal text on its own line"
+        );
+    }
+
+    #[test]
+    fn blockquote_without_callout_marker_renders_literal_brackets() {
+        let lines = render_test("> [not a callout] just text\n", 80, true, false);
+        let text: Vec<String> = lines.iter().map(line_text).collect();
+        assert!(
+            text.iter().any(|l| l.contains("[not a callout] just text")),
+            "non-callout bracket text renders literally: {text:?}"
         );
     }
 

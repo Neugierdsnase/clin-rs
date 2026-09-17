@@ -75,6 +75,7 @@
 - [X] **Hint bar style customization** — custom `hint_bar_style` options (`classic`, `sharp`, `rounded`, `slanted`, `bubbles`, `blur`, `chips`, `brackets`, `compact`, `sharp_gradient`, `rounded_gradient`, `slanted_gradient`, `hexagon`)
 - [X] **CLI mode** — list, quick-note, find, config, storage, and keybind tools via `clin` subcommands
 - [x] **todo.txt** — todo.txt standardization support
+- [X] **Obsidian callout rendering** — `> [!type] title` blockquote callouts render as a bold label in the markdown preview instead of literal brackets
 
 ## Planned
 

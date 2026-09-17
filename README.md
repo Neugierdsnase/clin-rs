@@ -91,6 +91,7 @@ Drop an existing Obsidian vault into `clin` and it works out of the box. Native 
 - **Templates** — TOML-based note templates with variable substitution (`{date}`, `{time}`, `{weekday}`, etc.). See [TEMPLATES.md](docs/TEMPLATES.md).
 - **Goals system** — daily word-count and note-count goals with in-app progress bars. Configurable via `[goals]` config section and command palette.
 - **Import & conversion** — import File/CSV/JSON/URL/Clipboard content as a new note or append to the current note. PDF, DOCX, HTML converted via external tools.
+- **Obsidian callouts** — `> [!note]`/`> [!warning]`/etc. blockquote callouts render as a bold uppercase label instead of literal brackets in the markdown preview.
 
 ---
 
