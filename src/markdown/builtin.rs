@@ -363,7 +363,6 @@ impl Ctx<'_, '_> {
     fn begin_inline_continuation(&mut self, source_line: usize, content_margin: usize) {
         let q_margin = self.quote_margin.unwrap_or(0);
         self.push_line(source_line, q_margin);
-        self.emit_quote_rails();
         self.ensure_margin(content_margin);
     }
 
@@ -2892,6 +2891,12 @@ mod tests {
         let t1 = line_text(&lines[1]);
         assert!(t0.starts_with(" │ "));
         assert!(t1.starts_with(" │ "));
+        // Regression: a soft-wrapped continuation line inside a single-level
+        // quote must show the rail exactly once, not doubled.
+        assert!(
+            !t1.starts_with(" │ │ "),
+            "continuation line should not double the rail: {t1:?}"
+        );
 
         let mut opts = mk_opts(crate::config::IconMode::None);
         opts.wrap = true;
@@ -2907,6 +2912,10 @@ mod tests {
                 t.starts_with(" │ "),
                 "wrapped quote line should start with rail: {:?}",
                 t
+            );
+            assert!(
+                !t.starts_with(" │ │ "),
+                "wrapped quote line should not double the rail: {t:?}"
             );
         }
     }
