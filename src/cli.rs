@@ -57,6 +57,17 @@ pub enum Command {
         #[command(subcommand)]
         action: CacheCmd,
     },
+    /// Quick-capture a note into today's daily note (Obsidian Daily Notes
+    /// plugin compatible).
+    Jot {
+        /// Text to append. May start with `-` (e.g. a markdown checklist
+        /// item or bullet) without needing a `--` separator.
+        #[arg(allow_hyphen_values = true)]
+        text: String,
+        /// Append as a raw block instead of a `[HH:MM]` timestamped entry.
+        #[arg(long)]
+        append: bool,
+    },
 }
 
 #[derive(Subcommand, Debug)]

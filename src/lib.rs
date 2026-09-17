@@ -13,6 +13,7 @@ pub mod calendar;
 pub mod cli;
 pub mod config;
 pub mod console;
+pub mod daily_notes;
 pub mod draw {
     pub mod app;
     pub mod geometry;
@@ -158,11 +159,42 @@ pub fn run() -> Result<()> {
         Some(Command::Templates { action }) => run_templates(action),
         Some(Command::Config { action }) => run_config(action),
         Some(Command::Cache { action }) => run_cache(action),
+        Some(Command::Jot { text, append }) => run_jot(text, append),
     }
 }
 fn launch_tui(open_title: Option<String>, force_setup: bool) -> Result<()> {
     let mut app = crate::session::bootstrap_app(open_title, force_setup)?;
     run_tui_session(&mut app)
+}
+
+fn run_jot(text: String, append: bool) -> Result<()> {
+    let (storage, _) = Storage::init();
+    let storage = storage?;
+    let vault = &storage.notes_dir;
+
+    let result = if append {
+        crate::daily_notes::append_block(vault, &text)
+    } else {
+        crate::daily_notes::append_note(vault, &text)
+    };
+
+    match result {
+        Ok(path) => {
+            let verb = if append { "appended to" } else { "noted in" };
+            println!(
+                "{}",
+                console::success(&format!("{verb} {}", path.display()))
+            );
+            Ok(())
+        }
+        Err(e) => {
+            eprintln!(
+                "{}",
+                console::error(&format!("Failed to write daily note: {e}"))
+            );
+            process::exit(1);
+        }
+    }
 }
 
 fn run_notes(action: NotesCmd) -> Result<()> {
